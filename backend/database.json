@@ -1,0 +1,7 @@
+{
+  "prefix": "postgresql",
+  "address": "127.0.0.1:5432",
+  "user": "postgres",
+  "password": "example",
+  "database": "development"
+}

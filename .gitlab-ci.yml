@@ -1,0 +1,213 @@
+variables:
+  GIT_STRATEGY: "clone"
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: never
+    - when: always
+
+stages:
+- prepare-variables
+- update-db
+- update-ingress
+- build-frontend
+- package-frontend
+- test-backend
+- build-backend
+- deploy
+
+prepare-variables:
+  stage: prepare-variables
+  image: alpine:latest
+  script:
+  - |
+    echo $FORCE_DEPLOYMENT
+    if [ -z ${FORCE_DEPLOYMENT} ]
+    then 
+      if [ "$CI_COMMIT_BRANCH" = "develop" ]
+      then 
+        TARGET=develop
+      else 
+        TARGET=release
+      fi 
+    else 
+      TARGET=$FORCE_DEPLOYMENT
+    fi
+    echo $TARGET > gitlab_vars_target
+  artifacts:
+    name: "build_vars-$CI_JOB_NAME"
+    expire_in: 1 day
+    paths:
+      - gitlab_vars_target
+
+update-db:
+  stage: update-db
+  image: bitnami/kubectl
+  rules:
+  - if: $CI_PIPELINE_SOURCE == "web"
+    when: manual
+    allow_failure: true
+  - changes:
+    - ci/k8s/database.yaml
+    allow_failure: true
+    when: always
+  script:
+  - kubectl delete deploy 23ws-ase-pr-inso-06-db || echo true
+  - kubectl apply -f ci/k8s/database.yaml
+
+update-ingress:
+  stage: update-ingress
+  image: bitnami/kubectl
+  rules:
+  - if: $CI_PIPELINE_SOURCE == "web"
+    when: manual
+    allow_failure: true
+  - changes:
+    - ci/k8s/ingress.yaml
+    allow_failure: true
+    when: always
+  script:
+  - kubectl apply -f ci/k8s/ingress.yaml
+
+build-frontend:
+  stage: build-frontend
+  image: ghcr.io/cirruslabs/flutter:3.13.9
+  before_script:
+  - export TARGET=`cat gitlab_vars_target`
+  script:
+  - |
+    cd frontend
+    mv lib/src/config/connection_$TARGET.dart lib/src/config/connection.dart
+    flutter pub get
+    flutter build web --base-href /$TARGET/app/ -t lib/src/main.dart
+  artifacts:
+    name: "frontend-$CI_JOB_NAME"
+    expire_in: 1 day
+    paths:
+    - frontend/build/web/
+
+package-frontend:
+  stage: package-frontend
+  image:     
+    name: gcr.io/kaniko-project/executor:v1.17.0-debug
+    entrypoint: [""]
+  before_script:
+  - export TARGET=`cat gitlab_vars_target`
+  script:
+  - echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(printf "%s:%s" "${CI_REGISTRY_USER}" "${CI_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"},\"$CI_DEPENDENCY_PROXY_SERVER\":{\"auth\":\"$(printf "%s:%s" ${CI_DEPENDENCY_PROXY_USER} "${CI_DEPENDENCY_PROXY_PASSWORD}" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
+  - /kaniko/executor
+    --context "${CI_PROJECT_DIR}"
+    --dockerfile "ci/containers/frontend.Dockerfile"
+    --destination "registry.reset.inso-w.at/2023ws-ase-pr-group/23ws-ase-pr-inso-06/$TARGET-frontend:$CI_PIPELINE_ID"
+
+unittest-backend:
+  stage: test-backend
+  image: ghcr.io/brotholomew/python-non-root:3.12.0-bookworm-fast-circle
+  script:
+  - echo '{"prefix":"postgresql","address":"s-23ws-ase-pr-inso-06-db-service:5432","user":"postgres","password":"example","database":"develop"}' > backend/database.json
+  - pip install --user -r ./requirements.txt
+  - pytest backend/test/integration/
+
+build-backend:
+  stage: build-backend
+  image:
+    name: gcr.io/kaniko-project/executor:v1.17.0-debug
+    entrypoint: [""]
+  before_script:
+    - export TARGET=`cat gitlab_vars_target`
+    - export BUILD_ARG="--build-arg ROOT_PATH=/$TARGET/backend"
+    - echo "/kaniko/executor $BUILD_ARG --context \"${CI_PROJECT_DIR}\" --dockerfile \"ci/containers/backend.Dockerfile\" --destination \"registry.reset.inso-w.at/2023ws-ase-pr-group/23ws-ase-pr-inso-06/$TARGET-backend:$CI_PIPELINE_ID\"" > build_script.sh
+    - chmod +x build_script.sh
+    - cat build_script.sh
+  script:
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(printf "%s:%s" "${CI_REGISTRY_USER}" "${CI_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"},\"$CI_DEPENDENCY_PROXY_SERVER\":{\"auth\":\"$(printf "%s:%s" ${CI_DEPENDENCY_PROXY_USER} "${CI_DEPENDENCY_PROXY_PASSWORD}" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
+    - ./build_script.sh
+
+deploy-develop-frontend:
+  stage: deploy
+  image: bitnami/kubectl
+  rules:
+  - if: $CI_COMMIT_BRANCH == "develop"
+    changes:
+    - frontend/*
+    - ci/k8s/develop/frontend.yaml
+    - ci/containers/frontend.Dockerfile
+    - .gitlab-ci.yml
+    when: always
+  - if: $CI_COMMIT_BRANCH == "develop" && $CI_PIPELINE_SOURCE == "web"
+    when: manual
+    allow_failure: true
+  - when: manual
+    if: $FORCE_DEPLOYMENT == "all" || $FORCE_DEPLOYMENT == "develop"
+    allow_failure: true
+  script:
+  - sed -i 's/:latest/:'$CI_PIPELINE_ID'/g' ci/k8s/develop/frontend.yaml
+  - cat ci/k8s/develop/frontend.yaml
+  - kubectl apply -f ci/k8s/develop/frontend.yaml
+
+deploy-develop-backend:
+  stage: deploy
+  image: bitnami/kubectl
+  rules:
+  - if: $CI_COMMIT_BRANCH == "develop"
+    changes:
+    - backend/*
+    - ci/k8s/develop/backend.yaml
+    - ci/containers/backend.Dockerfile
+    - .gitlab-ci.yml
+    when: always
+  - if: $CI_COMMIT_BRANCH == "develop" && $CI_PIPELINE_SOURCE == "web"
+    when: manual
+    allow_failure: true
+  - when: manual
+    if: $FORCE_DEPLOYMENT == "all" || $FORCE_DEPLOYMENT == "develop"
+    allow_failure: true
+  script:
+  - sed -i 's/:latest/:'$CI_PIPELINE_ID'/g' ci/k8s/develop/backend.yaml
+  - cat ci/k8s/develop/backend.yaml
+  - kubectl apply -f ci/k8s/develop/backend.yaml
+
+deploy-release-frontend:
+  stage: deploy
+  image: bitnami/kubectl
+  rules:
+  - if: $CI_COMMIT_BRANCH =~ /^release*/
+    changes:
+    - frontend/*
+    - ci/k8s/release/frontend.yaml
+    - ci/containers/frontend.Dockerfile
+    - .gitlab-ci.yml
+    when: always
+  - if: $CI_COMMIT_BRANCH =~ /^release*/ && $CI_PIPELINE_SOURCE == "web"
+    when: manual
+    allow_failure: true
+  - when: manual
+    if: $FORCE_DEPLOYMENT == "all" || $FORCE_DEPLOYMENT == "release"
+    allow_failure: true
+  script:
+  - sed -i 's/:latest/:'$CI_PIPELINE_ID'/g' ci/k8s/release/frontend.yaml
+  - cat ci/k8s/release/frontend.yaml
+  - kubectl apply -f ci/k8s/release/frontend.yaml
+
+deploy-release-backend:
+  stage: deploy
+  image: bitnami/kubectl
+  rules:
+  - if: $CI_COMMIT_BRANCH =~ /^release*/
+    changes:
+    - backend/*
+    - ci/k8s/release/backend.yaml
+    - ci/containers/backend.Dockerfile
+    - .gitlab-ci.yml
+    when: always
+  - if: $CI_COMMIT_BRANCH =~ /^release*/ && $CI_PIPELINE_SOURCE == "web"
+    when: manual
+    allow_failure: true
+  - when: manual
+    if: $FORCE_DEPLOYMENT == "all" || $FORCE_DEPLOYMENT == "release"
+    allow_failure: true
+  script:
+  - sed -i 's/:latest/:'$CI_PIPELINE_ID'/g' ci/k8s/release/backend.yaml
+  - cat ci/k8s/release/backend.yaml
+  - kubectl apply -f ci/k8s/release/backend.yaml

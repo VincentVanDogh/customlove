@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: 23ws-ase-pr-inso-06-develop-kaniko
+  namespace: 23ws-ase-pr-inso-06
+spec:
+  selector:
+    matchLabels:
+      app: 23ws-ase-pr-inso-06-develop-kaniko
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: 23ws-ase-pr-inso-06-develop-kaniko
+    spec:
+      volumes:
+      - name: kaniko
+        secret:
+          secretName: kaniko
+      containers:
+        - name: develop-kaniko
+          image: ghcr.io/brotholomew/kaniko:latest
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "10m"
+              ephemeral-storage: "100Mi"
+            limits:
+              memory: "280Mi"
+              cpu: "500m"
+              ephemeral-storage: "100Mi"
+          volumeMounts:
+          - mountPath: "/kaniko/.docker"
+            name: kaniko
+            readOnly: true
+      imagePullSecrets:
+      - name: secret-dockercfg
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 2

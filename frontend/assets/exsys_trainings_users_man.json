@@ -1,0 +1,102 @@
+{
+  "exsys_trainings_users_man": [
+    {
+      "name": "Ethan Taylor",
+      "gender": "Male",
+      "age": 23,
+      "bio": "Fitness enthusiast who enjoys sports, movies, gaming, nature, and fitness.",
+      "interests": ["Sports", "Movies", "Gaming", "Nature", "Fitness"]
+    },
+    {
+      "name": "Liam Turner",
+      "gender": "Male",
+      "age": 25,
+      "bio": "Foodie with a green thumb. Exploring the world of food, gardening, sports, history, and science.",
+      "interests": ["Food", "Gardening", "Sports", "History", "Science"]
+    },
+    {
+      "name": "Noah Baker",
+      "gender": "Male",
+      "age": 24,
+      "bio": "Sports and gaming enthusiast. Enjoying sports, movies, travel, gaming, and technology.",
+      "interests": ["Sports", "Movies", "Travel", "Gaming", "Technology"]
+    },
+    {
+      "name": "Mason Lee",
+      "gender": "Male",
+      "age": 23,
+      "bio": "Tech-savvy individual with a passion for coding. Navigating technology, coding, gaming, books, and movies.",
+      "interests": ["Technology", "Coding", "Gaming", "Books", "Movies"]
+    },
+    {
+      "name": "Carter Harris",
+      "gender": "Male",
+      "age": 24,
+      "bio": "Melody seeker and travel enthusiast. Exploring music, travel, photography, food, and sports.",
+      "interests": ["Music", "Travel", "Photography", "Food", "Sports"]
+    },
+    {
+      "name": "Jackson Davis",
+      "gender": "Male",
+      "age": 23,
+      "bio": "Fitness freak with a historical curiosity. Balancing fitness, history, technology, music, and movies.",
+      "interests": ["Fitness", "History", "Technology", "Music", "Movies"]
+    },
+    {
+      "name": "Lucas Clark",
+      "gender": "Male",
+      "age": 24,
+      "bio": "Nature photographer and philosophy enthusiast. Capturing nature, pondering philosophy, photography, travel, and science.",
+      "interests": ["Nature", "Philosophy", "Photography", "Travel", "Science"]
+    },
+    {
+      "name": "Aiden Smith",
+      "gender": "Male",
+      "age": 25,
+      "bio": "Art lover and fashion enthusiast. Embracing art, fashion, travel, music, and literature.",
+      "interests": ["Art", "Fashion", "Travel", "Music", "Philosophy"]
+    },
+    {
+      "name": "Grayson Miller",
+      "gender": "Male",
+      "age": 26,
+      "bio": "Adventure seeker and adrenaline junkie. Pursuing adventure, extreme sports, travel, movies, and technology.",
+      "interests": ["Travel", "Sports", "Books", "Movies", "Technology"]
+    },
+    {
+      "name": "Landon Wilson",
+      "gender": "Male",
+      "age": 23,
+      "bio": "Animal lover and environmental advocate. Devoted to animals, environmental causes, photography, books, and technology.",
+      "interests": ["Gardening", "Nature", "Photography", "Books", "Technology"]
+    },
+    {
+      "name": "Brayden Smith",
+      "gender": "Male",
+      "age": 24,
+      "bio": "Culinary artist and history buff. Crafting culinary delights, exploring history, travel, music, and gaming.",
+      "interests": ["Crafts", "History", "Travel", "Music", "Gaming"]
+    },
+    {
+      "name": "Logan Moore",
+      "gender": "Male",
+      "age": 25,
+      "bio": "Film buff and technology geek. Diving into films, technology, travel, gaming, and literature.",
+      "interests": ["Movies", "Technology", "Travel", "Gaming", "Philosophy"]
+    },
+    {
+      "name": "Elijah Brown",
+      "gender": "Male",
+      "age": 23,
+      "bio": "Fitness and yoga enthusiast. Embracing fitness, yoga, nature, music, and philosophy.",
+      "interests": ["Fitness", "Sports", "Nature", "Music", "Philosophy"]
+    },
+    {
+      "name": "Mason Evans",
+      "gender": "Male",
+      "age": 24,
+      "bio": "Science nerd and astronomy lover. Delving into science, astronomy, technology, travel, and gaming.",
+      "interests": ["Science", "Philosophy", "Technology", "Travel", "Gaming"]
+    }
+  ]
+}
